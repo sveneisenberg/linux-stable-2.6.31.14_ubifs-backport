@@ -1966,7 +1966,6 @@ static int ubifs_fill_super(struct super_block *sb, void *data, int silent)
 	mutex_init(&c->lp_mutex);
 	mutex_init(&c->tnc_mutex);
 	mutex_init(&c->log_mutex);
-	mutex_init(&c->mst_mutex);
 	mutex_init(&c->umount_mutex);
 	mutex_init(&c->bu_mutex);
 	mutex_init(&c->write_reserve_mutex);
