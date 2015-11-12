@@ -229,7 +229,6 @@ TRACE_EVENT(ext4_da_writepages,
 		__field(	char,	nonblocking		)
 		__field(	char,	for_kupdate		)
 		__field(	char,	for_reclaim		)
-		__field(	char,	for_writepages		)
 		__field(	char,	range_cyclic		)
 		__field(       pgoff_t,	writeback_index		)
 	),
@@ -244,7 +243,6 @@ TRACE_EVENT(ext4_da_writepages,
 		__entry->nonblocking	= wbc->nonblocking;
 		__entry->for_kupdate	= wbc->for_kupdate;
 		__entry->for_reclaim	= wbc->for_reclaim;
-		__entry->for_writepages	= wbc->for_writepages;
 		__entry->range_cyclic	= wbc->range_cyclic;
 		__entry->writeback_index = inode->i_mapping->writeback_index;
 	),
@@ -286,11 +284,12 @@ TRACE_EVENT(ext4_da_write_pages,
 		__entry->pages_written	= mpd->pages_written;
 	),
 
-	TP_printk("dev %s ino %lu b_blocknr %llu b_size %u b_state 0x%04x first_page %lu io_done %d pages_written %d",
-		  jbd2_dev_to_name(__entry->dev), (unsigned long) __entry->ino,
-		  __entry->b_blocknr, __entry->b_size,
-		  __entry->b_state, __entry->first_page,
-		  __entry->io_done, __entry->pages_written)
+	TP_printk("dev %s ino %lu nr_t_write %ld pages_skipped %ld range_start %llu range_end %llu nonblocking %d for_kupdate %d for_reclaim %d range_cyclic %d",
+		  jbd2_dev_to_name(__entry->dev), __entry->ino, __entry->nr_to_write,
+		  __entry->pages_skipped, __entry->range_start,
+		  __entry->range_end, __entry->nonblocking,
+		  __entry->for_kupdate, __entry->for_reclaim,
+		  __entry->range_cyclic)
 );
 
 TRACE_EVENT(ext4_da_writepages_result,

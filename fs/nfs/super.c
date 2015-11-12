@@ -1935,6 +1935,8 @@ static inline void nfs_initialise_sb(struct super_block *sb)
 	if (server->flags & NFS_MOUNT_NOAC)
 		sb->s_flags |= MS_SYNCHRONOUS;
 
+	sb->s_bdi = &server->backing_dev_info;
+
 	nfs_super_set_maxbytes(sb, server->maxfilesize);
 }
 
@@ -2197,8 +2199,8 @@ static void nfs_kill_super(struct super_block *s)
 {
 	struct nfs_server *server = NFS_SB(s);
 
-	bdi_unregister(&server->backing_dev_info);
 	kill_anon_super(s);
+	bdi_unregister(&server->backing_dev_info);
 	nfs_fscache_release_super_cookie(s);
 	nfs_free_server(server);
 }
