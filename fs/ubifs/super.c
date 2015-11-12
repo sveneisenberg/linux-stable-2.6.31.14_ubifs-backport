@@ -453,17 +453,6 @@ static int ubifs_sync_fs(struct super_block *sb, int wait)
 		return 0;
 
 	/*
-	 * VFS calls '->sync_fs()' before synchronizing all dirty inodes and
-	 * pages, so synchronize them first, then commit the journal. Strictly
-	 * speaking, it is not necessary to commit the journal here,
-	 * synchronizing write-buffers would be enough. But committing makes
-	 * UBIFS free space predictions much more accurate, so we want to let
-	 * the user be able to get more accurate results of 'statfs()' after
-	 * they synchronize the file system.
-	 */
-	generic_sync_sb_inodes(sb, &wbc);
-
-	/*
 	 * Synchronize write buffers, because 'ubifs_run_commit()' does not
 	 * do this if it waits for an already running commit.
 	 */
@@ -473,6 +462,13 @@ static int ubifs_sync_fs(struct super_block *sb, int wait)
 			return err;
 	}
 
+	/*
+	 * Strictly speaking, it is not necessary to commit the journal here,
+	 * synchronizing write-buffers would be enough. But committing makes
+	 * UBIFS free space predictions much more accurate, so we want to let
+	 * the user be able to get more accurate results of 'statfs()' after
+	 * they synchronize the file system.
+	 */
 	err = ubifs_run_commit(c);
 	if (err)
 		return err;
