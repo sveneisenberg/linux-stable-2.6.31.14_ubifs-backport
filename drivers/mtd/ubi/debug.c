@@ -43,13 +43,13 @@ void ubi_dump_flash(struct ubi_device *ubi, int pnum, int offset, int len)
 		return;
 	err = ubi->mtd->read(ubi->mtd, addr, len, &read, buf);
 	if (err && err != -EUCLEAN) {
-		ubi_err("error %d while reading %d bytes from PEB %d:%d, "
-			"read %zd bytes", err, len, pnum, offset, read);
+		ubi_err("error %d while reading %d bytes from PEB %d(ubi%d):%d, "
+			"read %zd bytes", err, len, pnum, ubi->ubi_num, offset, read);
 		goto out;
 	}
 
-	ubi_msg("dumping %d bytes of data from PEB %d, offset %d",
-		len, pnum, offset);
+	ubi_msg("dumping %d bytes of data from PEB %d(ubi%d), offset %d",
+		len, pnum, ubi->ubi_num, offset);
 	print_hex_dump(KERN_DEBUG, "", DUMP_PREFIX_OFFSET, 32, 1, buf, len, 1);
 out:
 	vfree(buf);

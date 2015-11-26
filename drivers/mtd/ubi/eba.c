@@ -338,7 +338,7 @@ int ubi_eba_unmap_leb(struct ubi_device *ubi, struct ubi_volume *vol,
 		/* This logical eraseblock is already unmapped */
 		goto out_unlock;
 
-	dbg_eba("erase LEB %d:%d, PEB %d", vol_id, lnum, pnum);
+	dbg_eba("erase LEB %d:%d, PEB %d(ubi%d)", vol_id, lnum, pnum, ubi->ubi_num);
 
 	vol->eba_tbl[lnum] = UBI_LEB_UNMAPPED;
 	err = ubi_wl_put_peb(ubi, vol_id, lnum, pnum, 0);
@@ -393,8 +393,8 @@ int ubi_eba_read_leb(struct ubi_device *ubi, struct ubi_volume *vol, int lnum,
 		return 0;
 	}
 
-	dbg_eba("read %d bytes from offset %d of LEB %d:%d, PEB %d",
-		len, offset, vol_id, lnum, pnum);
+	dbg_eba("read %d bytes from offset %d of LEB %d:%d, PEB %d(ubi%d)",
+		len, offset, vol_id, lnum, pnum, ubi->ubi_num);
 
 	if (vol->vol_type == UBI_DYNAMIC_VOLUME)
 		check = 0;
@@ -513,7 +513,7 @@ retry:
 		return new_pnum;
 	}
 
-	ubi_msg("recover PEB %d, move data to PEB %d", pnum, new_pnum);
+	ubi_msg("recover PEB %d(ubi%d), move data to PEB %d(ubi%d)", pnum, ubi->ubi_num, new_pnum, ubi->ubi_num);
 
 	err = ubi_io_read_vid_hdr(ubi, pnum, vid_hdr, 1);
 	if (err && err != UBI_IO_BITFLIPS) {
@@ -567,7 +567,7 @@ write_error:
 	 * Bad luck? This physical eraseblock is bad too? Crud. Let's try to
 	 * get another one.
 	 */
-	ubi_warn("failed to write to PEB %d", new_pnum);
+	ubi_warn("failed to write to PEB %d(ubi%d)", new_pnum, ubi->ubi_num);
 	ubi_wl_put_peb(ubi, vol_id, lnum, new_pnum, 1);
 	if (++tries > UBI_IO_RETRIES) {
 		ubi_free_vid_hdr(ubi, vid_hdr);
@@ -606,12 +606,12 @@ int ubi_eba_write_leb(struct ubi_device *ubi, struct ubi_volume *vol, int lnum,
 
 	pnum = vol->eba_tbl[lnum];
 	if (pnum >= 0) {
-		dbg_eba("write %d bytes at offset %d of LEB %d:%d, PEB %d",
-			len, offset, vol_id, lnum, pnum);
+		dbg_eba("write %d bytes at offset %d of LEB %d:%d, PEB %d(ubi%d)",
+			len, offset, vol_id, lnum, pnum, ubi->ubi_num);
 
 		err = ubi_io_write_data(ubi, buf, pnum, offset, len);
 		if (err) {
-			ubi_warn("failed to write data to PEB %d", pnum);
+			ubi_warn("failed to write data to PEB %d(ubi%d)", pnum, ubi->ubi_num);
 			if (err == -EIO && ubi->bad_allowed)
 				err = recover_peb(ubi, pnum, vol_id, lnum, buf,
 						  offset, len);
@@ -647,13 +647,13 @@ retry:
 		return pnum;
 	}
 
-	dbg_eba("write VID hdr and %d bytes at offset %d of LEB %d:%d, PEB %d",
-		len, offset, vol_id, lnum, pnum);
+	dbg_eba("write VID hdr and %d bytes at offset %d of LEB %d:%d, PEB %d(ubi%d)",
+		len, offset, vol_id, lnum, pnum, ubi->ubi_num);
 
 	err = ubi_io_write_vid_hdr(ubi, pnum, vid_hdr);
 	if (err) {
-		ubi_warn("failed to write VID header to LEB %d:%d, PEB %d",
-			 vol_id, lnum, pnum);
+		ubi_warn("failed to write VID header to LEB %d:%d, PEB %d(ubi%d)",
+			 vol_id, lnum, pnum, ubi->ubi_num);
 		goto write_error;
 	}
 
@@ -661,8 +661,8 @@ retry:
 		err = ubi_io_write_data(ubi, buf, pnum, offset, len);
 		if (err) {
 			ubi_warn("failed to write %d bytes at offset %d of "
-				 "LEB %d:%d, PEB %d", len, offset, vol_id,
-				 lnum, pnum);
+				 "LEB %d:%d, PEB %d(ubi%d)", len, offset, vol_id,
+				 lnum, pnum, ubi->ubi_num);
 			goto write_error;
 		}
 	}
@@ -767,20 +767,20 @@ retry:
 		return pnum;
 	}
 
-	dbg_eba("write VID hdr and %d bytes at LEB %d:%d, PEB %d, used_ebs %d",
-		len, vol_id, lnum, pnum, used_ebs);
+	dbg_eba("write VID hdr and %d bytes at LEB %d:%d, PEB %d(ubi%d), used_ebs %d",
+		len, vol_id, lnum, pnum, ubi->ubi_num, used_ebs);
 
 	err = ubi_io_write_vid_hdr(ubi, pnum, vid_hdr);
 	if (err) {
-		ubi_warn("failed to write VID header to LEB %d:%d, PEB %d",
-			 vol_id, lnum, pnum);
+		ubi_warn("failed to write VID header to LEB %d:%d, PEB %d(ubi%d)",
+			 vol_id, lnum, pnum, ubi->ubi_num);
 		goto write_error;
 	}
 
 	err = ubi_io_write_data(ubi, buf, pnum, 0, len);
 	if (err) {
-		ubi_warn("failed to write %d bytes of data to PEB %d",
-			 len, pnum);
+		ubi_warn("failed to write %d bytes of data to PEB %d(ubi%d)",
+			 len, pnum, ubi->ubi_num);
 		goto write_error;
 	}
 
@@ -883,20 +883,20 @@ retry:
 		goto out_leb_unlock;
 	}
 
-	dbg_eba("change LEB %d:%d, PEB %d, write VID hdr to PEB %d",
-		vol_id, lnum, vol->eba_tbl[lnum], pnum);
+	dbg_eba("change LEB %d:%d, PEB %d(ubi%d), write VID hdr to PEB %d(ubi%d)",
+		vol_id, lnum, vol->eba_tbl[lnum], ubi->ubi_num, pnum, ubi->ubi_num);
 
 	err = ubi_io_write_vid_hdr(ubi, pnum, vid_hdr);
 	if (err) {
-		ubi_warn("failed to write VID header to LEB %d:%d, PEB %d",
-			 vol_id, lnum, pnum);
+		ubi_warn("failed to write VID header to LEB %d:%d, PEB %d(ubi%d)",
+			 vol_id, lnum, pnum, ubi->ubi_num);
 		goto write_error;
 	}
 
 	err = ubi_io_write_data(ubi, buf, pnum, 0, len);
 	if (err) {
-		ubi_warn("failed to write %d bytes of data to PEB %d",
-			 len, pnum);
+		ubi_warn("failed to write %d bytes of data to PEB %d(ubi%d)",
+			 len, pnum, ubi->ubi_num);
 		goto write_error;
 	}
 
@@ -988,7 +988,7 @@ int ubi_eba_copy_leb(struct ubi_device *ubi, int from, int to,
 	vol_id = be32_to_cpu(vid_hdr->vol_id);
 	lnum = be32_to_cpu(vid_hdr->lnum);
 
-	dbg_wl("copy LEB %d:%d, PEB %d to PEB %d", vol_id, lnum, from, to);
+	dbg_wl("copy LEB %d:%d, PEB %d(ubi%d) to PEB %d(ubi%d)", vol_id, lnum, from, ubi->ubi_num, to, ubi->ubi_num);
 
 	if (vid_hdr->vol_type == UBI_VID_STATIC) {
 		data_size = be32_to_cpu(vid_hdr->data_size);
@@ -1040,9 +1040,9 @@ int ubi_eba_copy_leb(struct ubi_device *ubi, int from, int to,
 	 * cancel it.
 	 */
 	if (vol->eba_tbl[lnum] != from) {
-		dbg_wl("LEB %d:%d is no longer mapped to PEB %d, mapped to "
-		       "PEB %d, cancel", vol_id, lnum, from,
-		       vol->eba_tbl[lnum]);
+		dbg_wl("LEB %d:%d is no longer mapped to PEB %d(ubi%d), mapped to "
+		       "PEB %d(ubi%d), cancel", vol_id, lnum, from, ubi->ubi_num,
+		       vol->eba_tbl[lnum], ubi->ubi_num);
 		err = MOVE_CANCEL_RACE;
 		goto out_unlock_leb;
 	}
@@ -1057,8 +1057,8 @@ int ubi_eba_copy_leb(struct ubi_device *ubi, int from, int to,
 	dbg_wl("read %d bytes of data", aldata_size);
 	err = ubi_io_read_data(ubi, ubi->peb_buf, from, 0, aldata_size);
 	if (err && err != UBI_IO_BITFLIPS) {
-		ubi_warn("error %d while reading data from PEB %d",
-			 err, from);
+		ubi_warn("error %d while reading data from PEB %d(ubi%d)",
+			 err, from, ubi->ubi_num);
 		err = MOVE_SOURCE_RD_ERR;
 		goto out_unlock_buf;
 	}
@@ -1108,7 +1108,7 @@ int ubi_eba_copy_leb(struct ubi_device *ubi, int from, int to,
 	if (err) {
 		if (err != UBI_IO_BITFLIPS) {
 			ubi_warn("error %d while reading VID header back from "
-				  "PEB %d", err, to);
+				  "PEB %d(ubi%d)", err, to, ubi->ubi_num);
 			if (is_error_sane(err))
 				err = MOVE_TARGET_RD_ERR;
 		} else
@@ -1135,7 +1135,7 @@ int ubi_eba_copy_leb(struct ubi_device *ubi, int from, int to,
 		if (err) {
 			if (err != UBI_IO_BITFLIPS) {
 				ubi_warn("error %d while reading data back "
-					 "from PEB %d", err, to);
+					 "from PEB %d(ubi%d)", err, to, ubi->ubi_num);
 				if (is_error_sane(err))
 					err = MOVE_TARGET_RD_ERR;
 			} else
@@ -1146,8 +1146,8 @@ int ubi_eba_copy_leb(struct ubi_device *ubi, int from, int to,
 		cond_resched();
 
 		if (crc != crc32(UBI_CRC32_INIT, ubi->peb_buf, data_size)) {
-			ubi_warn("read data back from PEB %d and it is "
-				 "different", to);
+			ubi_warn("read data back from PEB %d(ubi%d) and it is "
+				 "different", to, ubi->ubi_num);
 			err = -EINVAL;
 			goto out_unlock_buf;
 		}

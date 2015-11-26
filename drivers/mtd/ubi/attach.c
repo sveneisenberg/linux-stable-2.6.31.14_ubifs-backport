@@ -355,15 +355,15 @@ static int compare_lebs(struct ubi_device *ubi, const struct ubi_ainf_peb *aeb,
 	if (second_is_newer) {
 		if (!vid_hdr->copy_flag) {
 			/* It is not a copy, so it is newer */
-			dbg_bld("second PEB %d is newer, copy_flag is unset",
-				pnum);
+			dbg_bld("second PEB %d(ubi%d) is newer, copy_flag is unset",
+				pnum, ubi->ubi_num);
 			return 1;
 		}
 	} else {
 		if (!aeb->copy_flag) {
 			/* It is not a copy, so it is newer */
-			dbg_bld("first PEB %d is newer, copy_flag is unset",
-				pnum);
+			dbg_bld("first PEB %d(ubi%d) is newer, copy_flag is unset",
+				pnum, ubi->ubi_num);
 			return bitflips << 1;
 		}
 
@@ -377,8 +377,8 @@ static int compare_lebs(struct ubi_device *ubi, const struct ubi_ainf_peb *aeb,
 			if (err == UBI_IO_BITFLIPS)
 				bitflips = 1;
 			else {
-				ubi_err("VID of PEB %d header is bad, but it "
-					"was OK earlier, err %d", pnum, err);
+				ubi_err("VID of PEB %d(ubi%d) header is bad, but it "
+					"was OK earlier, err %d", pnum, ubi->ubi_num, err);
 				if (err > 0)
 					err = -EIO;
 
@@ -405,13 +405,13 @@ static int compare_lebs(struct ubi_device *ubi, const struct ubi_ainf_peb *aeb,
 	data_crc = be32_to_cpu(vid_hdr->data_crc);
 	crc = crc32(UBI_CRC32_INIT, buf, len);
 	if (crc != data_crc) {
-		dbg_bld("PEB %d CRC error: calculated %#08x, must be %#08x",
-			pnum, crc, data_crc);
+		dbg_bld("PEB %d(ubi%d) CRC error: calculated %#08x, must be %#08x",
+			pnum, ubi->ubi_num, crc, data_crc);
 		corrupted = 1;
 		bitflips = 0;
 		second_is_newer = !second_is_newer;
 	} else {
-		dbg_bld("PEB %d CRC is OK", pnum);
+		dbg_bld("PEB %d(ubi%d) CRC is OK", pnum, ubi->ubi_num);
 		bitflips |= !!err;
 	}
 
@@ -419,9 +419,9 @@ static int compare_lebs(struct ubi_device *ubi, const struct ubi_ainf_peb *aeb,
 	ubi_free_vid_hdr(ubi, vh);
 
 	if (second_is_newer)
-		dbg_bld("second PEB %d is newer, copy_flag is set", pnum);
+		dbg_bld("second PEB %d(ubi%d) is newer, copy_flag is set", pnum, ubi->ubi_num);
 	else
-		dbg_bld("first PEB %d is newer, copy_flag is set", pnum);
+		dbg_bld("first PEB %d(ubi%d) is newer, copy_flag is set", pnum, ubi->ubi_num);
 
 	return second_is_newer | (bitflips << 1) | (corrupted << 2);
 
@@ -461,8 +461,8 @@ int ubi_add_to_av(struct ubi_device *ubi, struct ubi_attach_info *ai, int pnum,
 	lnum = be32_to_cpu(vid_hdr->lnum);
 	sqnum = be64_to_cpu(vid_hdr->sqnum);
 
-	dbg_bld("PEB %d, LEB %d:%d, EC %d, sqnum %llu, bitflips %d",
-		pnum, vol_id, lnum, ec, sqnum, bitflips);
+	dbg_bld("PEB %d(ubi%d), LEB %d:%d, EC %d, sqnum %llu, bitflips %d",
+		pnum, ubi->ubi_num, vol_id, lnum, ec, sqnum, bitflips);
 
 	av = add_volume(ai, vol_id, pnum, vid_hdr);
 	if (IS_ERR(av))
@@ -494,8 +494,8 @@ int ubi_add_to_av(struct ubi_device *ubi, struct ubi_attach_info *ai, int pnum,
 		 * logical eraseblock present.
 		 */
 
-		dbg_bld("this LEB already exists: PEB %d, sqnum %llu, EC %d",
-			aeb->pnum, aeb->sqnum, aeb->ec);
+		dbg_bld("this LEB already exists: PEB %d(ubi%d), sqnum %llu, EC %d",
+			aeb->pnum, ubi->ubi_num, aeb->sqnum, aeb->ec);
 
 		/*
 		 * Make sure that the logical eraseblocks have different
@@ -672,7 +672,7 @@ static int early_erase_peb(struct ubi_device *ubi,
 		 * Erase counter overflow. Upgrade UBI and use 64-bit
 		 * erase counters internally.
 		 */
-		ubi_err("erase counter overflow at PEB %d, EC %d", pnum, ec);
+		ubi_err("erase counter overflow at PEB %d(ubi%d), EC %d", pnum, ubi->ubi_num, ec);
 		return -EINVAL;
 	}
 
@@ -716,7 +716,7 @@ struct ubi_ainf_peb *ubi_early_get_peb(struct ubi_device *ubi,
 	if (!list_empty(&ai->free)) {
 		aeb = list_entry(ai->free.next, struct ubi_ainf_peb, u.list);
 		list_del(&aeb->u.list);
-		dbg_bld("return free PEB %d, EC %d", aeb->pnum, aeb->ec);
+		dbg_bld("return free PEB %d(ubi%d), EC %d", aeb->pnum, ubi->ubi_num, aeb->ec);
 		return aeb;
 	}
 
@@ -736,7 +736,7 @@ struct ubi_ainf_peb *ubi_early_get_peb(struct ubi_device *ubi,
 
 		aeb->ec += 1;
 		list_del(&aeb->u.list);
-		dbg_bld("return PEB %d, EC %d", aeb->pnum, aeb->ec);
+		dbg_bld("return PEB %d(ubi%d), EC %d", aeb->pnum, ubi->ubi_num, aeb->ec);
 		return aeb;
 	}
 
@@ -789,12 +789,12 @@ static int check_corruption(struct ubi_device *ubi, struct ubi_vid_hdr *vid_hdr,
 	if (ubi_check_pattern(ubi->peb_buf, 0xFF, ubi->leb_size))
 		goto out_unlock;
 
-	ubi_err("PEB %d contains corrupted VID header, and the data does not "
+	ubi_err("PEB %d(ubi%d) contains corrupted VID header, and the data does not "
 		"contain all 0xFF, this may be a non-UBI PEB or a severe VID "
-		"header corruption which requires manual inspection", pnum);
+		"header corruption which requires manual inspection", pnum, ubi->ubi_num);
 	ubi_dump_vid_hdr(vid_hdr);
-	dbg_msg("hexdump of PEB %d offset %d, length %d",
-		pnum, ubi->leb_start, ubi->leb_size);
+	dbg_msg("hexdump of PEB %d(ubi%d) offset %d, length %d",
+		pnum, ubi->ubi_num, ubi->leb_start, ubi->leb_size);
 	ubi_dbg_print_hex_dump(KERN_DEBUG, "", DUMP_PREFIX_OFFSET, 32, 1,
 			       ubi->peb_buf, ubi->leb_size, 1);
 	err = 1;
@@ -821,7 +821,7 @@ static int scan_peb(struct ubi_device *ubi, struct ubi_attach_info *ai,
 	long long uninitialized_var(ec);
 	int err, bitflips = 0, vol_id, ec_err = 0;
 
-	dbg_bld("scan PEB %d", pnum);
+	dbg_bld("scan PEB %d(ubi%d)", pnum, ubi->ubi_num);
 
 	/* Skip bad physical eraseblocks */
 	err = ubi_io_is_bad(ubi, pnum);
@@ -906,8 +906,8 @@ static int scan_peb(struct ubi_device *ubi, struct ubi_attach_info *ai,
 			ubi->image_seq = image_seq;
 		if (ubi->image_seq && image_seq &&
 		    ubi->image_seq != image_seq) {
-			ubi_err("bad image sequence number %d in PEB %d, "
-				"expected %d", image_seq, pnum, ubi->image_seq);
+			ubi_err("bad image sequence number %d in PEB %d(ubi%d), "
+				"expected %d", image_seq, pnum, ubi->ubi_num, ubi->image_seq);
 			ubi_dump_ec_hdr(ech);
 			return -EINVAL;
 		}
@@ -1028,8 +1028,8 @@ static int scan_peb(struct ubi_device *ubi, struct ubi_attach_info *ai,
 	}
 
 	if (ec_err)
-		ubi_warn("valid VID header but corrupted EC header at PEB %d",
-			 pnum);
+		ubi_warn("valid VID header but corrupted EC header at PEB %d(ubi%d)",
+			 pnum, ubi->ubi_num);
 	err = ubi_add_to_av(ubi, ai, pnum, ec, vidh, bitflips);
 	if (err)
 		return err;
@@ -1165,7 +1165,7 @@ static struct ubi_attach_info *scan_all(struct ubi_device *ubi)
 	for (pnum = 0; pnum < ubi->peb_count; pnum++) {
 		cond_resched();
 
-		dbg_gen("process PEB %d", pnum);
+		dbg_gen("process PEB %d(ubi%d)", pnum, ubi->ubi_num);
 		err = scan_peb(ubi, ai, pnum);
 		if (err < 0)
 			goto out_vidh;
@@ -1599,7 +1599,7 @@ static int self_check_ai(struct ubi_device *ubi, struct ubi_attach_info *ai)
 	err = 0;
 	for (pnum = 0; pnum < ubi->peb_count; pnum++)
 		if (!buf[pnum]) {
-			ubi_err("PEB %d is not referred", pnum);
+			ubi_err("PEB %d(ubi%d) is not referred", pnum, ubi->ubi_num);
 			err = 1;
 		}
 
