@@ -384,13 +384,17 @@ retry:
 	}
 
 	err = ubi_self_check_all_ff(ubi, pnum, 0, ubi->peb_size);
-	if (err)
+	if (err) {
+		ubi_err("self check all_ff on PEB %d(ubi%d) failed", pnum, ubi->ubi_num);
 		return err;
+	}
 
 	if (ubi_dbg_is_erase_failure(ubi)) {
 		ubi_err("cannot erase PEB %d (emulated)", pnum);
 		return -EIO;
 	}
+
+	dbg_io("erased PEB %d(ubi%d)", pnum, ubi->ubi_num);
 
 	return 0;
 }
