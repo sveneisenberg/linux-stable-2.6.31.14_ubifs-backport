@@ -141,6 +141,7 @@ enum {
  * @u.list: link in the protection queue
  * @ec: erase counter
  * @pnum: physical eraseblock number
+ * @rc: number reads since last erasure
  *
  * This data structure is used in the WL sub-system. Each physical eraseblock
  * has a corresponding &struct wl_entry object which may be kept in different
@@ -153,6 +154,9 @@ struct ubi_wl_entry {
 	} u;
 	int ec;
 	int pnum;
+#ifdef CONFIG_MTD_UBI_READ_COUNTER
+	unsigned int rc;
+#endif
 };
 
 /**
@@ -675,6 +679,7 @@ int ubi_wl_init(struct ubi_device *ubi, struct ubi_attach_info *ai);
 void ubi_wl_close(struct ubi_device *ubi);
 int ubi_thread(void *u);
 int ubi_bitrot_check(struct ubi_device *ubi, int pnum, int force_scrub);
+void ubi_wl_update_rc(struct ubi_device *ubi, int pnum);
 
 /* io.c */
 int ubi_io_read(const struct ubi_device *ubi, void *buf, int pnum, int offset,
