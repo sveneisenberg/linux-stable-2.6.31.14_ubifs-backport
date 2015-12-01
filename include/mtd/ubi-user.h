@@ -163,6 +163,8 @@
 #define UBI_IOCRPEB _IOW(UBI_IOC_MAGIC, 4, __s32)
 #define UBI_IOCSPEB _IOW(UBI_IOC_MAGIC, 5, __s32)
 
+#define UBI_IOCSTATS _IOW(UBI_IOC_MAGIC, 6, struct ubi_stats_req)
+
 /* ioctl commands of the UBI control character device */
 
 #define UBI_CTRL_IOC_MAGIC 'o'
@@ -405,5 +407,20 @@ struct ubi_set_vol_prop_req {
 	__u8  padding[7];
 	__u64 value;
 }  __packed;
+
+struct ubi_stats_entry {
+	__s32 pnum;
+	__s32 ec;
+	__s32 rc;
+	__s32 padding;
+} __packed;
+
+struct ubi_stats_req {
+	__s32 req_len;
+	__s32 req_pnum;
+	__s32 padding[2];
+	struct ubi_stats_entry stats[0];
+} __packed;
+
 
 #endif /* __UBI_USER_H__ */
